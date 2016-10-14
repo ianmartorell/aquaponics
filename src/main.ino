@@ -2,15 +2,21 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 
 const char* HOSTNAME = "aquaponics";
-const char* OTA_PASSWORD = "narinraco";
-const char* WIFI_SSID = "JAZZTEL_FnTx";
-const char* WIFI_PASSWORD = "7qhab7ndf4nq";
+const char* OTA_PASSWORD = "password";
+const char* WIFI_SSID = "ssid";
+const char* WIFI_PASSWORD = "password";
 const char* NTP_SERVER_NAME = "time.nist.gov";
 const int NTP_PACKET_SIZE = 48;
 const unsigned int UDP_PORT = 2390;
 const int GMT_OFFSET = 2;
+const int REDPIN = 13;
+const int GREENPIN = 14;
+const int BLUEPIN = 15;
 
 WiFiUDP udp;
 IPAddress ntpServerIP;
@@ -26,6 +32,9 @@ int checkTimeRetries = 0;
 unsigned long epoch = 0;
 unsigned long lastNTP = 0;
 unsigned long lastLoop = 0;
+
+MDNSResponder mdns;
+ESP8266WebServer server(80);
 
 void setup() {
   Serial.begin(115200);
@@ -80,20 +89,46 @@ void setup() {
       requestTime();
     }
   }
+
+  pinMode(REDPIN, OUTPUT);
+  pinMode(GREENPIN, OUTPUT);
+  pinMode(BLUEPIN, OUTPUT);
+  digitalWrite(REDPIN, LOW);
+  digitalWrite(GREENPIN, LOW);
+  digitalWrite(BLUEPIN, LOW);
+
+  if (mdns.begin("esp8266", WiFi.localIP())) {
+    Serial.println("MDNS responder started");
+  }
+
+  server.on("/", []() {
+    char str[10];
+    sprintf(str, "%d", hour);
+    server.send(200, "text/plain", str);
+    // server.send(200, "text/plain", "hello world");
+  });
+
+  server.onNotFound([]() {
+    server.send(404, "text/plain", "404!");
+  });
+
+  server.begin();
 }
 
 void loop() {
+  server.handleClient();
   ArduinoOTA.handle();
 
   if (millis() - lastLoop > 500) {
     lastLoop = millis();
-    Serial.print("Epoch is: ");
-    Serial.println(epoch);
+    // Serial.print("Epoch is: ");
+    // Serial.println(epoch);
     int secsSinceLastNTP = (millis() - lastNTP) / 1000;
-    Serial.print("Seconds since last NTP: ");
-    Serial.println(secsSinceLastNTP);
+    // Serial.print("Seconds since last NTP: ");
+    // Serial.println(secsSinceLastNTP);
 
-    if (secsSinceLastNTP > 120 and requestedTime == 0) {
+    // Check time with NTP server every 5min
+    if (secsSinceLastNTP > 300 and requestedTime == 0) {
       Serial.println("NTP requested");
       requestTime();
       requestedTime = 1;
@@ -102,13 +137,28 @@ void loop() {
     if (requestedTime == 1) {
       checkTime();
       checkTimeRetries++;
-      if (checkTimeRetries > 5)
-      {
+      if (checkTimeRetries > 5) {
         requestedTime = 0;
       }
     }
 
     decodeEpoch(epoch + secsSinceLastNTP);
+
+    if (hour >= 9 && hour < 19) {
+        // analogWrite(REDPIN, 255);
+        // analogWrite(GREENPIN, 255);
+        // analogWrite(BLUEPIN, 255);
+        digitalWrite(REDPIN, HIGH);
+        digitalWrite(GREENPIN, HIGH);
+        digitalWrite(BLUEPIN, HIGH);
+    } else {
+        // analogWrite(REDPIN, 0);
+        // analogWrite(GREENPIN, 0);
+        // analogWrite(BLUEPIN, 0);
+        digitalWrite(REDPIN, LOW);
+        digitalWrite(GREENPIN, LOW);
+        digitalWrite(BLUEPIN, LOW);
+    }
   }
 }
 
@@ -178,16 +228,17 @@ unsigned long sendNTPpacket(IPAddress& address) {
 }
 
 void decodeEpoch(unsigned long currentTime) {
-  Serial.print("The UTC time is ");
-  printTime(epoch);
+  // Serial.print("The UTC time is ");
+  // printTime(epoch);
   currentTime = currentTime + (GMT_OFFSET * 60 * 60);
-  Serial.print("The local time is ");
-  printTime(currentTime);
+  // Serial.print("The local time is ");
+  // printTime(currentTime);
 
-  hour = (currentTime % 86400L) / 3600;
-  if (hour > 12) {
-    hour -= 12;
+  int hourTmp = (currentTime % 86400L) / 3600;
+  if (hourTmp > 12) {
+    hourTmp -= 12;
   }
+  hour = hourTmp;
   minute = (currentTime % 3600) / 60;
   second = currentTime % 60;
 }
