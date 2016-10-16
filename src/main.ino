@@ -10,13 +10,13 @@ const char* HOSTNAME = "aquaponics";
 const char* OTA_PASSWORD = "password";
 const char* WIFI_SSID = "ssid";
 const char* WIFI_PASSWORD = "password";
-const char* NTP_SERVER_NAME = "time.nist.gov";
+const char* NTP_SERVER_NAME = "0.pool.ntp.org";
 const int NTP_PACKET_SIZE = 48;
 const unsigned int UDP_PORT = 2390;
 const int GMT_OFFSET = 2;
-const int REDPIN = 13;
-const int GREENPIN = 14;
-const int BLUEPIN = 15;
+const int REDPIN = D5;
+const int GREENPIN = D6;
+const int BLUEPIN = D7;
 
 WiFiUDP udp;
 IPAddress ntpServerIP;
@@ -37,7 +37,7 @@ MDNSResponder mdns;
 ESP8266WebServer server(80);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println("Starting...");
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -124,8 +124,8 @@ void loop() {
     // Serial.print("Epoch is: ");
     // Serial.println(epoch);
     int secsSinceLastNTP = (millis() - lastNTP) / 1000;
-    // Serial.print("Seconds since last NTP: ");
-    // Serial.println(secsSinceLastNTP);
+    Serial.print("Seconds since last NTP: ");
+    Serial.println(secsSinceLastNTP);
 
     // Check time with NTP server every 5min
     if (secsSinceLastNTP > 300 and requestedTime == 0) {
@@ -228,17 +228,13 @@ unsigned long sendNTPpacket(IPAddress& address) {
 }
 
 void decodeEpoch(unsigned long currentTime) {
-  // Serial.print("The UTC time is ");
-  // printTime(epoch);
+  Serial.print("The UTC time is ");
+  printTime(epoch);
   currentTime = currentTime + (GMT_OFFSET * 60 * 60);
-  // Serial.print("The local time is ");
-  // printTime(currentTime);
+  Serial.print("The local time is ");
+  printTime(currentTime);
 
-  int hourTmp = (currentTime % 86400L) / 3600;
-  if (hourTmp > 12) {
-    hourTmp -= 12;
-  }
-  hour = hourTmp;
+  hour = (currentTime % 86400L) / 3600;
   minute = (currentTime % 3600) / 60;
   second = currentTime % 60;
 }
