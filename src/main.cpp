@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
@@ -8,8 +9,8 @@
 
 const char* HOSTNAME = "aquaponics";
 const char* OTA_PASSWORD = "password";
-const char* WIFI_SSID = "ssid";
-const char* WIFI_PASSWORD = "password";
+const char* WIFI_SSID = "Intel_IOTSWC";
+const char* WIFI_PASSWORD = "intel2016";
 const char* NTP_SERVER_NAME = "0.pool.ntp.org";
 const int NTP_PACKET_SIZE = 48;
 const unsigned int UDP_PORT = 2390;
@@ -35,6 +36,12 @@ unsigned long lastLoop = 0;
 
 MDNSResponder mdns;
 ESP8266WebServer server(80);
+
+void requestTime();
+bool checkTime();
+unsigned long sendNTPpacket(IPAddress& address);
+void decodeEpoch(unsigned long currentTime);
+void printTime(unsigned long i);
 
 void setup() {
   Serial.begin(9600);
@@ -105,7 +112,6 @@ void setup() {
     char str[10];
     sprintf(str, "%d", hour);
     server.send(200, "text/plain", str);
-    // server.send(200, "text/plain", "hello world");
   });
 
   server.onNotFound([]() {
