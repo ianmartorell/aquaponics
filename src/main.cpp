@@ -108,9 +108,9 @@ void setup() {
     Serial.println("MDNS responder started");
   }
 
-  server.on("/", []() {
+  server.on("/hour", []() {
     char str[10];
-    sprintf(str, "%d", hour);
+    snprintf(str, 10, "%d", hour);
     server.send(200, "text/plain", str);
   });
 
