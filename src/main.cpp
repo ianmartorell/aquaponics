@@ -57,11 +57,11 @@ void setup() {
   ArduinoOTA.setHostname(HOSTNAME);
   ArduinoOTA.setPassword(OTA_PASSWORD);
 
-  ArduinoOTA.onStart([]() {
+  ArduinoOTA.onStart([] {
     Serial.println("Starting OTA update");
   });
 
-  ArduinoOTA.onEnd([]() {
+  ArduinoOTA.onEnd([] {
     Serial.println("\nDone");
   });
 
@@ -108,13 +108,13 @@ void setup() {
     Serial.println("MDNS responder started");
   }
 
-  server.on("/hour", []() {
+  server.on("/hour", [] {
     char str[10];
     snprintf(str, 10, "%d", hour);
     server.send(200, "text/plain", str);
   });
 
-  server.onNotFound([]() {
+  server.onNotFound([] {
     server.send(404, "text/plain", "404!");
   });
 
